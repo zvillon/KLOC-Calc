@@ -21,9 +21,14 @@ class CocomoCalculationService:
 
         params = COCOMO_MODES[mode]
         kloc = lines_of_code / 1000
+        
+        a = params["a"]
+        b = params["b"]
+        c = params["c"]
+        d = params["d"]
 
-        effort = params["a"] * (kloc ** params["b"])
-        duration = params["c"] * (effort ** params["d"])
+        effort = a * (kloc ** b)
+        duration = c * (effort ** d)
         total_cost = effort * cost_per_person_month
 
         return CocomoResult(

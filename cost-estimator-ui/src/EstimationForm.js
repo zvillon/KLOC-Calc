@@ -26,7 +26,7 @@ const EstimationForm = ({ onSubmit, isLoading }) => {
       <fieldset>
         <legend>COCOMO Parameters</legend>
         <div className="form-group">
-          <label htmlFor="lines_of_code">Estimated Lines of Code (LOC)</label>
+          <label htmlFor="lines_of_code">Estimated Lines of Code (LOC) (And NOT KLOC)</label>
           {/* CORRECTED: name attribute */}
           <input type="number" id="lines_of_code" name="lines_of_code" value={formData.lines_of_code} onChange={handleChange} required />
         </div>
