@@ -40,7 +40,7 @@ A comprehensive decision support system for software project management featurin
 **1. Clone & Setup Backend**
 ```bash
 git clone <repository-url>
-cd <project-folder>/backend
+cd KLOC-calc/backend
 
 # Create virtual environment
 python -m venv venv
