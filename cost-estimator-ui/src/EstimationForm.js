@@ -8,6 +8,8 @@ const EstimationForm = ({ onSubmit, isLoading }) => {
     revenue_period_years: 5,
     projected_annual_revenue: 250000,
     discount_rate: 8,
+
+    team_experience: 'intermediate',
   });
 
   const handleChange = (e) => {
@@ -56,6 +58,18 @@ const EstimationForm = ({ onSubmit, isLoading }) => {
           <label htmlFor="discount_rate">Discount Rate (%)</label>
           <input type="number" id="discount_rate" name="discount_rate" value={formData.discount_rate} onChange={handleChange} required />
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Heuristic estimation</legend>
+          <div className="form-group">
+            <label htmlFor="team_experience">Team experience level</label>
+            <select id="team_experience" name="team_experience" value={formData.team_experience} onChange={handleChange}>
+              <option value="junior">Junior</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="senior">Senior</option>
+            </select>
+          </div>
       </fieldset>
 
       <button type="submit" disabled={isLoading}>
