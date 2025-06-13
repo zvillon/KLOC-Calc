@@ -1,279 +1,335 @@
-import React from 'react';
-import { 
-  Clock, 
-  Users, 
-  DollarSign, 
-  TrendingUp, 
-  BarChart3, 
+import React from "react";
+import {
+  TrendingUp,
+  DollarSign,
+  Clock,
   AlertTriangle,
-  Target,
-  Zap
-} from 'lucide-react';
-import { CalculationResult } from '../types';
-import MetricCard from './MetricCard';
-import ProgressBar from './ProgressBar';
+  Zap,
+  BarChart3,
+  Rocket,
+} from "lucide-react";
+import { CalculationResult, ProjectData } from "../types/index";
+import MetricCard from "./MetricCard";
+import ProgressBar from "./ProgressBar";
 
 interface ResultsDashboardProps {
   results: CalculationResult | null;
+  formData: ProjectData | null;
 }
 
-const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ results }) => {
-  if (!results) {
+const ResultsDashboard: React.FC<ResultsDashboardProps> = ({
+  results,
+  formData,
+}) => {
+  if (!results || !formData) {
     return (
       <div className="flex items-center justify-center h-96 text-gray-400">
         <div className="text-center">
           <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p className="text-sm sm:text-base">Submit project data to see analysis results</p>
+          <p className="text-sm sm:text-base">
+            Submit project data to see analysis results
+          </p>
         </div>
       </div>
     );
   }
 
-  const formatCurrency = (value: number) => `$${(value / 1000).toFixed(0)}K`;
-  const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
+  const formatCurrency = (value?: number) => {
+    const num = value || 0;
+    if (Math.abs(num) >= 1_000_000) return `$${(num / 1_000_000).toFixed(2)}M`;
+    if (Math.abs(num) >= 1_000) return `$${(num / 1_000).toFixed(2)}K`;
+    return `$${num.toFixed(2)}`;
+  };
+  const formatPercentage = (value?: number) => `${(value || 0).toFixed(2)}%`;
+
+  const {
+    financials = { npv: 0, irr: 0, roi: 0, paybackPeriod: -1, cashFlow: [] },
+    budget_tracking = { planned: 0, forecasted: 0, variance: 0 },
+    monte_carlo_simulation = {
+      mean_cost: 0,
+      std_dev: 0,
+      p10_cost: 0,
+      p90_cost: 0,
+    },
+    optimization_scenarios = [],
+    risk_analysis = { technical: 0, human: 0, budget: 0 },
+    sensitivity_analysis = {
+      revenue_impact: 0,
+      cost_impact: 0,
+      projectScale: 0,
+    },
+    resourceUtilization = { developers: 0, testers: 0 },
+    estimation_models = {
+      cocomo: { effort: 0, duration: 0, cost: 0 },
+      function_point: { effort: 0, duration: 0, cost: 0 },
+    },
+  } = results || {};
+
+  const totalRiskScore =
+    risk_analysis.technical + risk_analysis.human + risk_analysis.budget;
+  const paybackPeriodText =
+    financials.paybackPeriod === -1
+      ? "Never"
+      : `${financials.paybackPeriod.toFixed(2)} years`;
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="flex items-center space-x-2">
+        <TrendingUp className="w-5 h-5 text-green-400" />
+        <h2 className="text-xl font-bold text-white">Financial Analysis</h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title="Duration"
-          value={`${results.duration.toFixed(1)} months`}
-          subtitle={`Team of ${results.teamSize} people`}
-          icon={Clock}
+          title="IRR"
+          value={formatPercentage(financials.irr)}
+          subtitle="Internal Rate of Return"
+          icon={TrendingUp}
           color="blue"
         />
         <MetricCard
-          title="Effort"
-          value={`${results.effort.toFixed(1)} PM`}
-          subtitle="Person-months"
-          icon={Users}
-          color="green"
-        />
-        <MetricCard
-          title="Total Cost"
-          value={formatCurrency(results.totalCost)}
-          subtitle={`EAF: ${results.eaf || 1}`}
+          title="ROI"
+          value={formatPercentage(financials.roi)}
+          subtitle="Return on Investment"
           icon={DollarSign}
-          color="orange"
-        />
-        <MetricCard
-          title="NPV"
-          value={formatCurrency(results.npv)}
-          subtitle={`${formatPercentage(results.discountRate * 100)} discount rate`}
-          icon={TrendingUp}
           color="green"
         />
+        <MetricCard
+          title="Payback Period"
+          value={paybackPeriodText}
+          subtitle="Time to break even"
+          icon={Clock}
+          color="purple"
+        />
+        <MetricCard
+          title="Risk Score"
+          value={formatPercentage(totalRiskScore)}
+          subtitle={`${formatCurrency(
+            monte_carlo_simulation.p90_cost
+          )} - ${formatCurrency(monte_carlo_simulation.p10_cost)}`}
+          icon={AlertTriangle}
+          color="red"
+        />
       </div>
-
-      <div id="financial-section" className="scroll-mt-20">
-        <div className="flex items-center space-x-2 mb-6">
-          <TrendingUp className="w-5 h-5 text-emerald-500" />
-          <h2 className="text-xl font-bold text-white">Financial Analysis</h2>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
-          <MetricCard
-            title="IRR"
-            value={formatPercentage(results.irr)}
-            subtitle="Internal Rate of Return"
-            icon={TrendingUp}
-            color="blue"
-          />
-          <MetricCard
-            title="ROI"
-            value={formatPercentage(results.roi)}
-            subtitle="Return on Investment"
-            icon={DollarSign}
-            color="green"
-          />
-          <MetricCard
-            title="Payback Period"
-            value={`${results.paybackPeriod} periods`}
-            subtitle="Time to break even"
-            icon={Clock}
-            color="purple"
-          />
-          <MetricCard
-            title="Risk Score"
-            value={formatPercentage(results.riskScore)}
-            subtitle={`${formatCurrency(results.confidenceInterval.low)} - ${formatCurrency(results.confidenceInterval.high)}`}
-            icon={AlertTriangle}
-            color="red"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-          <div className="bg-gradient-to-br from-emerald-900/20 to-emerald-800/10 rounded-xl border border-emerald-700/30 p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-              <span>Cash Flow Analysis (K$)</span>
-            </h3>
-            <div className="space-y-4">
-              {results.cashFlow.map((value, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-400 w-8">P{index}</span>
-                  <div className="flex-1 mx-4">
-                    <div className="w-full bg-gray-800/50 rounded-full h-3">
-                      <div
-                        className="bg-gradient-to-r from-emerald-500 to-emerald-400 h-3 rounded-full transition-all duration-700 ease-out"
-                        style={{ width: `${Math.min((value / Math.max(...results.cashFlow)) * 100, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                  <span className="text-sm text-white font-medium w-16 text-right">
-                    {formatCurrency(value)}
-                  </span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700/50">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <div className="w-2 h-2 bg-green-400 rounded-full mr-3"></div>
+            Cash Flow Analysis (Annual)
+          </h3>
+          <div className="space-y-4">
+            {(financials.cashFlow || []).map((value, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <span className="text-sm text-gray-400 w-8">P{index}</span>
+                <div className="flex-1 mx-4 h-3 bg-gray-700/50 rounded-full">
+                  <div
+                    className={`h-3 rounded-full bg-gradient-to-r ${
+                      value >= 0
+                        ? "from-green-500 to-emerald-400"
+                        : "from-red-500 to-rose-400"
+                    }`}
+                    style={{
+                      width: `${
+                        (Math.abs(value) /
+                          Math.max(1, ...financials.cashFlow.map(Math.abs))) *
+                        100
+                      }%`,
+                    }}
+                  ></div>
                 </div>
-              ))}
-            </div>
+                <span className="text-sm text-white font-medium w-16 text-right">
+                  {formatCurrency(value)}
+                </span>
+              </div>
+            ))}
           </div>
-
-          <div className="bg-gradient-to-br from-blue-900/20 to-blue-800/10 rounded-xl border border-blue-700/30 p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span>Budget Tracking (K$)</span>
-            </h3>
-            <div className="space-y-4">
-              <ProgressBar
-                label="Planned"
-                value={results.budgetTracking.planned}
-                maxValue={400}
-                color="blue"
-              />
-              <ProgressBar
-                label="Actual"
-                value={results.budgetTracking.actual}
-                maxValue={400}
-                color="green"
-              />
-              <ProgressBar
-                label="Variance"
-                value={results.budgetTracking.variance}
-                maxValue={400}
-                color="orange"
-              />
-            </div>
+        </div>
+        <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700/50">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <div className="w-2 h-2 bg-blue-400 rounded-full mr-3"></div>
+            Budget Tracking
+          </h3>
+          <div className="space-y-4">
+            <ProgressBar
+              label="Planned"
+              value={formatCurrency(budget_tracking.forecasted)}
+              displayValue={formatCurrency(budget_tracking.planned)}
+              maxValue={budget_tracking.forecasted * 1.2 || 1}
+              color="blue"
+            />
+            <ProgressBar
+              label="Forecasted (MC)"
+              value={formatCurrency(budget_tracking.forecasted)}
+              displayValue={formatCurrency(budget_tracking.forecasted)}
+              maxValue={budget_tracking.forecasted * 1.2 || 1}
+              color="green"
+            />
+            <ProgressBar
+              label="Variance"
+              value={formatCurrency(Math.abs(budget_tracking.variance))}
+              displayValue={formatCurrency(budget_tracking.variance)}
+              maxValue={budget_tracking.forecasted * 0.2 || 1}
+              color="orange"
+            />
           </div>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-        <div className="bg-gradient-to-br from-purple-900/20 to-purple-800/10 rounded-xl border border-purple-700/30 p-6 shadow-xl">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-            <span>Resource Utilization (%)</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700/50">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <div className="w-2 h-2 bg-purple-400 rounded-full mr-3"></div>
+            Resource Utilization (%)
           </h3>
           <div className="space-y-4">
             <ProgressBar
               label="Developers"
-              value={results.resourceUtilization.developers}
+              value={resourceUtilization.developers.toFixed(2)}
+              displayValue={resourceUtilization.developers.toFixed(2)}
               color="purple"
             />
             <ProgressBar
               label="Testers"
-              value={results.resourceUtilization.testers}
+              value={resourceUtilization.testers.toFixed(2)}
+              displayValue={resourceUtilization.testers.toFixed(2)}
               color="purple"
             />
           </div>
         </div>
-
-        <div id="risk-section" className="bg-gradient-to-br from-red-900/20 to-red-800/10 rounded-xl border border-red-700/30 p-6 shadow-xl scroll-mt-20">
-          <div className="flex items-center space-x-2 mb-4">
-            <AlertTriangle className="w-5 h-5 text-red-400" />
-            <h3 className="text-lg font-semibold text-white">Risk Assessment (%)</h3>
-          </div>
+        <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700/50">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <div className="w-2 h-2 bg-red-400 rounded-full mr-3"></div>
+            Risk Assessment (%)
+          </h3>
           <div className="space-y-4">
             <ProgressBar
               label="Technical Complexity"
-              value={results.riskAssessment.technical}
+              value={risk_analysis.technical.toFixed(2)}
+              displayValue={risk_analysis.technical.toFixed(2)}
+              maxValue={100}
               color="red"
             />
             <ProgressBar
               label="Human Resources"
-              value={results.riskAssessment.human}
+              value={risk_analysis.human.toFixed(2)}
+              displayValue={risk_analysis.human.toFixed(2)}
+              maxValue={100}
               color="red"
             />
             <ProgressBar
-              label="Budget Overrun"
-              value={results.riskAssessment.budget}
+              label="Budget"
+              value={risk_analysis.budget.toFixed(2)}
+              displayValue={risk_analysis.budget.toFixed(2)}
+              maxValue={100}
               color="red"
             />
           </div>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-        <div className="bg-gradient-to-br from-red-900/20 to-orange-900/20 rounded-xl border border-red-700/30 p-6 shadow-xl">
-          <div className="flex items-center space-x-2 mb-4">
-            <AlertTriangle className="w-5 h-5 text-red-400" />
-            <h3 className="text-lg font-semibold text-white">Risk Analysis</h3>
-          </div>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
-              <span className="text-gray-400">Total Risk Score</span>
-              <span className="text-red-400 font-bold text-lg">{formatPercentage(results.riskScore)}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-red-900/20 p-6 rounded-xl border border-red-700/30">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <AlertTriangle className="w-5 h-5 text-red-400 mr-2" />
+            Risk Analysis
+          </h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">Total Risk Score</span>{" "}
+              <span className="font-bold text-lg text-red-400">
+                {formatPercentage(totalRiskScore)}
+              </span>
             </div>
-            <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
-              <span className="text-gray-400">Expected Value</span>
-              <span className="text-white font-medium">{formatCurrency(results.npv)}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">Expected Value (NPV)</span>{" "}
+              <span className="font-medium text-white">
+                {formatCurrency(financials.npv)}
+              </span>
             </div>
-            <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
-              <span className="text-gray-400">Confidence Interval</span>
-              <span className="text-gray-300 text-sm">
-                {formatCurrency(results.confidenceInterval.low)} - {formatCurrency(results.confidenceInterval.high)}
+            <div className="flex justify-between items-center">
+              <span className="text-gray-400">Confidence Interval (Cost)</span>{" "}
+              <span className="font-medium text-white">
+                {formatCurrency(monte_carlo_simulation.p90_cost)} -{" "}
+                {formatCurrency(monte_carlo_simulation.p10_cost)}
               </span>
             </div>
           </div>
         </div>
-
-        <div className="bg-gradient-to-br from-green-900/20 to-emerald-800/10 rounded-xl border border-green-700/30 p-6 shadow-xl">
-          <div className="flex items-center space-x-2 mb-4">
-            <Target className="w-5 h-5 text-green-400" />
-            <h3 className="text-lg font-semibold text-white">Project Optimization</h3>
-          </div>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
-              <span className="text-gray-400">Current Duration</span>
-              <span className="text-white">{results.optimization.currentDuration} days</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
-              <span className="text-gray-400">Optimized Duration</span>
-              <span className="text-green-400 font-medium">{results.optimization.optimizedDuration} days</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
-              <span className="text-gray-400">Time Savings</span>
-              <span className="text-green-400 font-bold">{results.optimization.timeSavings} days</span>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
-              <span className="text-gray-400">Cost Savings</span>
-              <span className="text-green-400 font-bold">{formatCurrency(results.optimization.costSavings)}</span>
-            </div>
+        <div className="bg-green-900/20 p-6 rounded-xl border border-green-700/30">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+            <Rocket className="w-5 h-5 text-green-400 mr-2" />
+            Project Optimization
+          </h3>
+          <div className="space-y-3 text-sm">
+            {(() => {
+              const baseline = estimation_models.cocomo;
+              const optimized = optimization_scenarios.find(
+                (s) => s.scenario_name === "Accéléré"
+              );
+              if (!optimized)
+                return (
+                  <p className="text-gray-400">
+                    No optimization scenario available.
+                  </p>
+                );
+              const timeSavingsInDays = Math.round(
+                optimized.time_saving * 30.4
+              );
+              return (
+                <>
+                  {" "}
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Current Duration</span>{" "}
+                    <span className="font-medium text-white">
+                      {baseline.duration.toFixed(2)} months
+                    </span>
+                  </div>{" "}
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Optimized Duration</span>{" "}
+                    <span className="font-bold text-green-400">
+                      {optimized.duration.toFixed(2)} months
+                    </span>
+                  </div>{" "}
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Time Savings</span>{" "}
+                    <span className="font-bold text-green-400">
+                      {timeSavingsInDays} days
+                    </span>
+                  </div>{" "}
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Cost Savings</span>{" "}
+                    <span className="font-bold text-green-400">
+                      {formatCurrency(optimized.cost_saving)}
+                    </span>
+                  </div>{" "}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
-
-      <div className="bg-gradient-to-br from-orange-900/20 to-yellow-900/20 rounded-xl border border-orange-700/30 p-6 shadow-xl">
-        <div className="flex items-center space-x-2 mb-6">
-          <Zap className="w-5 h-5 text-orange-400" />
-          <h3 className="text-lg font-semibold text-white">Sensitivity Analysis (%)</h3>
-        </div>
+      <div className="bg-gray-900/50 p-6 rounded-xl border border-gray-700/50">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+          <Zap className="w-5 h-5 text-orange-400 mr-2" />
+          Sensitivity Analysis (%)
+        </h3>
         <div className="space-y-4">
           <ProgressBar
-            label="Discount Rate Impact"
-            value={Math.abs(results.sensitivityAnalysis.discountRate)}
-            maxValue={25}
-            color="red"
+            label="Revenue Impact"
+            value={Math.abs(sensitivity_analysis.revenue_impact).toFixed(2)}
+            displayValue={sensitivity_analysis.revenue_impact.toFixed(2)}
+            maxValue={50}
+            color="orange"
           />
           <ProgressBar
             label="Development Cost Impact"
-            value={results.sensitivityAnalysis.development}
-            maxValue={25}
+            value={Math.abs(sensitivity_analysis.cost_impact).toFixed(2)}
+            displayValue={sensitivity_analysis.cost_impact.toFixed(2)}
+            maxValue={50}
             color="orange"
           />
           <ProgressBar
             label="Project Scale Impact"
-            value={results.sensitivityAnalysis.projectScale}
-            maxValue={25}
+            value={sensitivity_analysis.projectScale.toFixed(2)}
+            displayValue={sensitivity_analysis.projectScale.toFixed(2)}
+            maxValue={50}
             color="orange"
           />
         </div>

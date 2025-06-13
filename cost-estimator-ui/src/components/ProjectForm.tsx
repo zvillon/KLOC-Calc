@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Send, Settings, Info, ToggleLeft, ToggleRight } from "lucide-react";
-import { ProjectData } from "../types";
+import { Send, Settings, ToggleLeft, ToggleRight } from "lucide-react";
+import { ProjectData } from "../types/index";
 
 interface ProjectFormProps {
   onSubmit: (data: ProjectData) => void;
@@ -10,17 +10,16 @@ interface ProjectFormProps {
 const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, loading }) => {
   const [formData, setFormData] = useState<ProjectData>({
     projectName: "",
-    sloc: 10000,
+    sloc: 25000,
     projectClass: "organic",
-    eaf: 1.0,
+    eaf: 2.0,
     discountRate: 0.1,
-    developers: 5,
-    testers: 2,
-    expectedRevenue: 200000,
-    projectDuration: 12,
+    developers: 8,
+    testers: 1,
+    expectedRevenue: 150000,
+    projectDuration: 6,
   });
 
-  // Toggle states for input methods
   const [useSliderForEAF, setUseSliderForEAF] = useState(true);
   const [useSliderForDiscount, setUseSliderForDiscount] = useState(true);
   const [useSliderForDuration, setUseSliderForDuration] = useState(true);
@@ -131,7 +130,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, loading }) => {
                           parseFloat(e.target.value)
                         )
                       }
-                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <div className="flex justify-between text-xs text-gray-400 mt-1">
                       <span>0%</span>
@@ -154,7 +153,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, loading }) => {
                           parseFloat(e.target.value) || 0
                         )
                       }
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       placeholder="0.10"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -188,11 +187,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, loading }) => {
                   onChange={(e) =>
                     handleInputChange("sloc", parseInt(e.target.value) || 0)
                   }
-                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200"
+                  className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                  <Info className="w-4 h-4 text-gray-500" />
-                </div>
               </div>
             </div>
 
@@ -249,7 +245,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, loading }) => {
                   <>
                     <input
                       type="range"
-                      step="0.1"
+                      step="0.05"
                       min="0.1"
                       max="5.0"
                       value={formData.eaf}
@@ -278,7 +274,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, loading }) => {
                         parseFloat(e.target.value) || 0.1
                       )
                     }
-                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     placeholder="1.0"
                   />
                 )}
@@ -399,7 +395,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, loading }) => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col justify-between h-full">
               <label className="block text-sm font-medium text-gray-300">
                 Expected Revenue ($)
               </label>
@@ -417,12 +413,12 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, loading }) => {
                       parseInt(e.target.value) || 0
                     )
                   }
-                  className="w-full pl-8 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200"
+                  className="w-full pl-8 pr-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col justify-between h-full">
               <div className="flex items-center justify-between">
                 <label className="block text-sm font-medium text-gray-300">
                   Project Duration (months)
@@ -449,7 +445,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, loading }) => {
                           parseInt(e.target.value)
                         )
                       }
-                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
+                      className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                     <div className="flex justify-between text-xs text-gray-400 mt-1">
                       <span>1 month</span>
@@ -471,7 +467,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({ onSubmit, loading }) => {
                           parseInt(e.target.value) || 1
                         )
                       }
-                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200"
+                      className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       placeholder="12"
                     />
                     <div className="absolute inset-y-0 right-0 flex items-center pr-3">

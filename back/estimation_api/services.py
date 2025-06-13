@@ -1,139 +1,255 @@
 import math
-
-COCOMO_PARAMS = {
-    "organic": {"a": 2.4, "b": 1.05, "c": 2.5, "d": 0.38},
-    "semi-detached": {"a": 3.0, "b": 1.12, "c": 2.5, "d": 0.35},
-    "embedded": {"a": 3.6, "b": 1.20, "c": 2.5, "d": 0.32},
-}
+import numpy as np
+import numpy_financial as npf
 
 
-def calculate_estimation_results(data: dict) -> dict:
-    """
-    Fonction principale qui prend les données validées du projet
-    et retourne un dictionnaire avec tous les résultats d'estimation.
-    """
-
-    kloc = data["estimatedLinesOfCode"] / 1000
-    team_size = data["teamSize"]
-    duration = data["duration"]
-    hourly_rate = data["hourlyRate"]
-
-    base_cost = team_size * hourly_rate * duration * 160
-
-    project_type = data["projectType"]
-    params = COCOMO_PARAMS.get(project_type, COCOMO_PARAMS["default"])
-
-    a = params["a"]
-    b = params["b"]
-    c = params["c"]
-    d = params["d"]
-
-    cocomo_effort = a * (kloc**b)
-
-    cocomo_duration = c * (cocomo_effort**d)
-
-    cocomo_cost = (
-        cocomo_effort * (base_cost / (team_size * duration))
-        if (team_size * duration) > 0
+def calculate_cocomo(data):
+    """Implémente le modèle COCOMO II de base."""
+    cocomo_constants = {
+        "effort": {"organic": 2.4, "semi-detached": 3.0, "embedded": 3.6},
+        "exponent": {"organic": 1.05, "semi-detached": 1.12, "embedded": 1.20},
+        "duration_coeff": {"organic": 2.5, "semi-detached": 2.5, "embedded": 2.5},
+        "duration_exp": {"organic": 0.38, "semi-detached": 0.35, "embedded": 0.32},
+    }
+    pc = data.get("projectClass", "organic")
+    ksloc = data.get("sloc", 0) / 1000
+    avg_salary_per_month = 8000
+    effort = (
+        cocomo_constants["effort"][pc]
+        * (ksloc ** cocomo_constants["exponent"][pc])
+        * data.get("eaf", 1.0)
+    )
+    duration = (
+        cocomo_constants["duration_coeff"][pc]
+        * (effort ** cocomo_constants["duration_exp"][pc])
+        if effort > 0
         else 0
     )
+    cost = effort * avg_salary_per_month
+    return {"effort": effort, "duration": duration, "cost": cost}
 
-    total_function_points = math.floor(data["estimatedLinesOfCode"] / 100)
-    fp_effort = cocomo_effort * 0.9
-    fp_cost = cocomo_cost * 0.95
 
-    total_budget = base_cost + data["infrastructureCost"] + data["licensingCost"]
-    expected_revenue = data["expectedRevenue"]
+def calculate_function_points(data):
+    """Implémente une estimation simplifiée basée sur les Function Points (FP)."""
+    unadjusted_fp = data.get("sloc", 0) / 50
+    vaf = 0.65 + (0.01 * (data.get("eaf", 1.0) * 14))
+    adjusted_fp = unadjusted_fp * vaf
+    effort = adjusted_fp / 20
+    duration = 2.5 * (effort**0.35) if effort > 0 else 0
+    cost = effort * 8000
+    return {"effort": effort, "duration": duration, "cost": cost}
 
-    roi = (
-        ((expected_revenue - total_budget) / total_budget) * 100
-        if total_budget > 0
-        else 0
-    )
 
-    npv = expected_revenue - total_budget - (total_budget * 0.1)
+def calculate_financials(data, total_cost, duration_months):
+    """Calcule ROI, NPV, IRR, et Payback Period avec une logique financière standard."""
+    if total_cost <= 0:
+        return {
+            "npv": data.get("expectedRevenue", 0) * 3,
+            "irr": 0,
+            "roi": float("inf"),
+            "paybackPeriod": 0,
+            "cashFlow": [],
+        }
 
-    irr = 15.0 + (roi / 10) if roi > 0 else 0
+    annual_revenue = data.get("expectedRevenue", 0)
 
-    monthly_revenue = expected_revenue / 12 if expected_revenue > 0 else 1
-    payback_period = (
-        total_budget / monthly_revenue if monthly_revenue > 0 else float("inf")
-    )
+    cash_flow_stream = [-total_cost] + [annual_revenue] * 3
 
-    tech_risk = data["technicalRisk"]
-    schedule_risk = data["scheduleRisk"]
-    budget_risk = data["budgetRisk"]
+    try:
+        npv = npf.npv(data.get("discountRate", 0), cash_flow_stream)
+        irr = npf.irr(cash_flow_stream) * 100
+    except ValueError:
+        npv = sum(cash_flow_stream)
+        irr = -100.0
 
-    overall_risk = (tech_risk + schedule_risk + budget_risk) / 3
+    net_profit = sum(cash_flow_stream[1:]) - total_cost
+    roi = (net_profit / total_cost) * 100
 
-    probability_of_success = max(10, 100 - (overall_risk * 9))
+    cumulative_cash_flow = 0
+    payback_period = -1.0
+    for i, flow in enumerate(cash_flow_stream):
+        cumulative_cash_flow += flow
+        if cumulative_cash_flow >= 0:
 
-    contingency_recommendation = overall_risk * 1.5
+            last_negative_flow = cumulative_cash_flow - flow
+            payback_period = (i - 1) + (-last_negative_flow / flow)
+            break
 
-    optimal_team_size = math.ceil(team_size * 0.9)
-
-    results = {
-        "cocomo": {
-            "effort": cocomo_effort,
-            "duration": cocomo_duration,
-            "cost": cocomo_cost,
-        },
-        "functionPoints": {
-            "totalFunctionPoints": total_function_points,
-            "effort": fp_effort,
-            "cost": fp_cost,
-        },
-        "budgeting": {
-            "totalBudget": total_budget,
-            "phaseBreakdown": {
-                "planning": total_budget * 0.15,
-                "development": total_budget * 0.50,
-                "testing": total_budget * 0.20,
-                "deployment": total_budget * 0.10,
-                "maintenance": total_budget * data["maintenanceCostPercentage"] / 100,
-            },
-            "roi": roi,
-            "npv": npv,
-            "irr": irr,
-            "paybackPeriod": payback_period,
-        },
-        "riskAnalysis": {
-            "overallRisk": overall_risk,
-            "riskFactors": {
-                "technical": tech_risk,
-                "schedule": schedule_risk,
-                "budget": budget_risk,
-            },
-            "contingencyRecommendation": contingency_recommendation,
-            "probabilityOfSuccess": probability_of_success,
-        },
-        "resourceOptimization": {
-            "optimalTeamSize": optimal_team_size,
-            "resourceAllocation": {
-                "development": 60,
-                "testing": 25,
-                "management": 10,
-                "design": 5,
-            },
-            "costSavingOpportunities": [
-                f"Réduire la taille de l'équipe à {optimal_team_size} personnes pour économiser sur les coûts.",
-                "Automatiser les tests pour économiser 15% du temps de test.",
-                "Utiliser des outils open-source pour réduire les coûts de licence.",
-            ],
-            "scheduleOptimization": {
-                "parallelTasks": [
-                    "Développement UI/UX",
-                    "Développement Backend",
-                    "Tests unitaires",
-                ],
-                "criticalPath": [
-                    "Architecture",
-                    "Développement du noyau",
-                    "Tests d'intégration",
-                    "Déploiement",
-                ],
-            },
-        },
+    return {
+        "npv": npv,
+        "irr": irr,
+        "roi": roi,
+        "paybackPeriod": payback_period,
+        "cashFlow": cash_flow_stream,
     }
 
-    return results
+
+def run_monte_carlo_simulation(data, iterations=1000):
+    """Simule le coût du projet."""
+    sloc_dist = np.random.triangular(
+        data.get("sloc", 0) * 0.8,
+        data.get("sloc", 0),
+        data.get("sloc", 0) * 1.5,
+        iterations,
+    )
+    eaf_dist = np.random.triangular(
+        data.get("eaf", 1.0) * 0.9,
+        data.get("eaf", 1.0),
+        data.get("eaf", 1.0) * 1.2,
+        iterations,
+    )
+    simulated_costs = []
+    for i in range(iterations):
+        sim_data = data.copy()
+        sim_data["sloc"] = sloc_dist[i]
+        sim_data["eaf"] = eaf_dist[i]
+        cost_estimation = calculate_cocomo(sim_data)
+        simulated_costs.append(cost_estimation["cost"])
+    return {
+        "mean_cost": np.mean(simulated_costs),
+        "std_dev": np.std(simulated_costs),
+        "p10_cost": np.percentile(simulated_costs, 90),
+        "p90_cost": np.percentile(simulated_costs, 10),
+    }
+
+
+def calculate_risk_and_analysis(data, baseline_cost, baseline_duration):
+    """Calcule les scores de risque et l'utilisation des ressources."""
+    team_size = data.get("developers", 1) + data.get("testers", 1)
+
+    risk_technical = (
+        min(
+            data.get("sloc", 0) / 100000
+            + {"organic": 0, "semi-detached": 0.1, "embedded": 0.2}[
+                data.get("projectClass", "organic")
+            ],
+            1,
+        )
+        * 40
+    )
+
+    risk_human = min(team_size / 25, 1) * 30
+
+    risk_budget = min(baseline_cost / 2000000, 1) * 30
+
+    required_team_size = (
+        baseline_duration > 0
+        and calculate_cocomo(data)["effort"] / baseline_duration
+        or 0
+    )
+    utilization_factor = required_team_size / team_size if team_size > 0 else 0
+    dev_util = min(100, utilization_factor * 100 * 0.7)
+    tester_util = min(100, utilization_factor * 100 * 0.3)
+
+    return {
+        "riskAssessment": {
+            "technical": risk_technical,
+            "human": risk_human,
+            "budget": risk_budget,
+        },
+        "resourceUtilization": {"developers": dev_util, "testers": tester_util},
+    }
+
+
+def generate_optimization_scenarios(data, baseline):
+
+    scenarios = []
+    data_fast = data.copy()
+    data_fast.update(
+        {
+            "developers": data["developers"] * 1.5,
+            "testers": data["testers"] * 1.5,
+            "eaf": data["eaf"] * 0.9,
+        }
+    )
+    fast_result = calculate_cocomo(data_fast)
+    scenarios.append(
+        {
+            "scenario_name": "Accéléré",
+            "team_size": int(data_fast["developers"] + data_fast["testers"]),
+            "duration": fast_result["duration"],
+            "cost": fast_result["cost"],
+            "cost_saving": baseline["cost"] - fast_result["cost"],
+            "time_saving": baseline["duration"] - fast_result["duration"],
+        }
+    )
+    data_cheap = data.copy()
+    data_cheap.update(
+        {
+            "developers": data["developers"] * 0.75,
+            "testers": data["testers"] * 0.75,
+            "eaf": data["eaf"] * 1.1,
+        }
+    )
+    cheap_result = calculate_cocomo(data_cheap)
+    scenarios.append(
+        {
+            "scenario_name": "Économique",
+            "team_size": int(data_cheap["developers"] + data_cheap["testers"]),
+            "duration": cheap_result["duration"],
+            "cost": cheap_result["cost"],
+            "cost_saving": baseline["cost"] - cheap_result["cost"],
+            "time_saving": baseline["duration"] - cheap_result["duration"],
+        }
+    )
+    return scenarios
+
+
+def calculate_estimation(data: dict) -> dict:
+    """Orchestre tous les modules de calcul pour générer un rapport complet."""
+    cocomo_result = calculate_cocomo(data)
+    fp_result = calculate_function_points(data)
+
+    baseline_cost = cocomo_result["cost"]
+    baseline_duration = cocomo_result["duration"]
+
+    financials = calculate_financials(data, baseline_cost, baseline_duration)
+    analysis = calculate_risk_and_analysis(data, baseline_cost, baseline_duration)
+    monte_carlo = run_monte_carlo_simulation(data)
+
+    sensitivity = calculate_sensitivity_analysis(
+        data, financials, baseline_cost, baseline_duration
+    )
+
+    optimization_scenarios = generate_optimization_scenarios(data, cocomo_result)
+
+    return {
+        "estimation_models": {"cocomo": cocomo_result, "function_point": fp_result},
+        "financials": financials,
+        "risk_analysis": analysis["riskAssessment"],
+        "monte_carlo_simulation": monte_carlo,
+        "sensitivity_analysis": sensitivity,
+        "budget_tracking": {
+            "planned": baseline_cost,
+            "forecasted": monte_carlo["mean_cost"],
+            "variance": monte_carlo["mean_cost"] - baseline_cost,
+        },
+        "optimization_scenarios": optimization_scenarios,
+        "resourceUtilization": analysis["resourceUtilization"],
+    }
+
+
+def calculate_sensitivity_analysis(data, baseline_financials, baseline_cost, duration):
+    baseline_npv = baseline_financials.get("npv", 0)
+    data_revenue_plus = data.copy()
+    data_revenue_plus["expectedRevenue"] *= 1.1
+    financials_revenue_plus = calculate_financials(
+        data_revenue_plus, baseline_cost, duration
+    )
+    revenue_impact_on_npv = (
+        ((financials_revenue_plus.get("npv", 0) - baseline_npv) / baseline_npv * 100)
+        if baseline_npv != 0
+        else float("inf")
+    )
+    cost_plus = baseline_cost * 1.1
+    financials_cost_plus = calculate_financials(data, cost_plus, duration)
+    cost_impact_on_npv = (
+        ((financials_cost_plus.get("npv", 0) - baseline_npv) / baseline_npv * 100)
+        if baseline_npv != 0
+        else float("-inf")
+    )
+    return {
+        "revenue_impact": revenue_impact_on_npv,
+        "cost_impact": cost_impact_on_npv,
+        "projectScale": 20.0,
+    }
