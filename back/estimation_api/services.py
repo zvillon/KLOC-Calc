@@ -230,26 +230,61 @@ def calculate_estimation(data: dict) -> dict:
 
 
 def calculate_sensitivity_analysis(data, baseline_financials, baseline_cost, duration):
+    """Analyse l'impact d'un changement de 10% sur les paramètres clés."""
+
     baseline_npv = baseline_financials.get("npv", 0)
+
     data_revenue_plus = data.copy()
     data_revenue_plus["expectedRevenue"] *= 1.1
     financials_revenue_plus = calculate_financials(
         data_revenue_plus, baseline_cost, duration
     )
-    revenue_impact_on_npv = (
-        ((financials_revenue_plus.get("npv", 0) - baseline_npv) / baseline_npv * 100)
-        if baseline_npv != 0
-        else float("inf")
-    )
+
+    if baseline_npv != 0:
+        revenue_impact_on_npv = (
+            (financials_revenue_plus.get("npv", 0) - baseline_npv)
+            / abs(baseline_npv)
+            * 100
+        )
+    else:
+        revenue_impact_on_npv = (
+            float("inf") if financials_revenue_plus.get("npv", 0) > 0 else 0
+        )
+
     cost_plus = baseline_cost * 1.1
     financials_cost_plus = calculate_financials(data, cost_plus, duration)
-    cost_impact_on_npv = (
-        ((financials_cost_plus.get("npv", 0) - baseline_npv) / baseline_npv * 100)
-        if baseline_npv != 0
-        else float("-inf")
-    )
+
+    if baseline_npv != 0:
+        cost_impact_on_npv = (
+            (financials_cost_plus.get("npv", 0) - baseline_npv)
+            / abs(baseline_npv)
+            * 100
+        )
+    else:
+        cost_impact_on_npv = (
+            float("-inf") if financials_cost_plus.get("npv", 0) < 0 else 0
+        )
+
+    data_sloc_plus = data.copy()
+    data_sloc_plus["sloc"] *= 1.1
+
+    cost_sloc_plus = calculate_cocomo(data_sloc_plus)["cost"]
+
+    financials_sloc_plus = calculate_financials(data, cost_sloc_plus, duration)
+
+    if baseline_npv != 0:
+        sloc_impact_on_npv = (
+            (financials_sloc_plus.get("npv", 0) - baseline_npv)
+            / abs(baseline_npv)
+            * 100
+        )
+    else:
+        sloc_impact_on_npv = (
+            float("-inf") if financials_sloc_plus.get("npv", 0) < 0 else 0
+        )
+
     return {
         "revenue_impact": revenue_impact_on_npv,
         "cost_impact": cost_impact_on_npv,
-        "projectScale": 20.0,
+        "projectScale": sloc_impact_on_npv,
     }

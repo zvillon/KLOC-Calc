@@ -1,13 +1,7 @@
 import React from 'react';
-import { Calculator, BarChart3, TrendingUp, Shield } from 'lucide-react';
+import { Calculator, BarChart3 } from 'lucide-react';
 
 const Header: React.FC = () => {
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
 
   return (
     <header className="bg-gray-900 border-b border-gray-800 px-4 sm:px-6 py-4 sticky top-0 z-50">
@@ -23,20 +17,6 @@ const Header: React.FC = () => {
             <BarChart3 className="w-4 h-4" />
             <span className="text-xs sm:text-sm font-medium hidden sm:inline">Estimation</span>
           </div>
-          <button
-            onClick={() => scrollToSection('financial-section')}
-            className="flex items-center space-x-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
-          >
-            <TrendingUp className="w-4 h-4" />
-            <span className="text-xs sm:text-sm font-medium hidden sm:inline">Financial</span>
-          </button>
-          <button
-            onClick={() => scrollToSection('risk-section')}
-            className="flex items-center space-x-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
-          >
-            <Shield className="w-4 h-4" />
-            <span className="text-xs sm:text-sm font-medium hidden sm:inline">Risk</span>
-          </button>
         </nav>
       </div>
     </header>
