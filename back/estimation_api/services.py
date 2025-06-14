@@ -4,7 +4,7 @@ import numpy_financial as npf
 
 
 def calculate_cocomo(data):
-    """Implémente le modèle COCOMO II de base."""
+    """Implements the basic COCOMO II model."""
     cocomo_constants = {
         "effort": {"organic": 2.4, "semi-detached": 3.0, "embedded": 3.6},
         "exponent": {"organic": 1.05, "semi-detached": 1.12, "embedded": 1.20},
@@ -30,10 +30,13 @@ def calculate_cocomo(data):
 
 
 def calculate_function_points(data):
-    """Implémente une estimation simplifiée basée sur les Function Points (FP)."""
+    """Implements a simplified estimation based on Function Points (FP)."""
+
     unadjusted_fp = data.get("sloc", 0) / 50
-    vaf = 0.65 + (0.01 * (data.get("eaf", 1.0) * 14))
+
+    vaf = 1.0
     adjusted_fp = unadjusted_fp * vaf
+
     effort = adjusted_fp / 20
     duration = 2.5 * (effort**0.35) if effort > 0 else 0
     cost = effort * 8000
@@ -41,7 +44,7 @@ def calculate_function_points(data):
 
 
 def calculate_financials(data, total_cost, duration_months):
-    """Calcule ROI, NPV, IRR, et Payback Period avec une logique financière standard."""
+    """Calculates ROI, NPV, IRR, and Payback Period using standard financial logic."""
     if total_cost <= 0:
         return {
             "npv": data.get("expectedRevenue", 0) * 3,
@@ -59,6 +62,7 @@ def calculate_financials(data, total_cost, duration_months):
         npv = npf.npv(data.get("discountRate", 0), cash_flow_stream)
         irr = npf.irr(cash_flow_stream) * 100
     except ValueError:
+
         npv = sum(cash_flow_stream)
         irr = -100.0
 
@@ -85,7 +89,7 @@ def calculate_financials(data, total_cost, duration_months):
 
 
 def run_monte_carlo_simulation(data, iterations=1000):
-    """Simule le coût du projet."""
+    """Simulates the project cost."""
     sloc_dist = np.random.triangular(
         data.get("sloc", 0) * 0.8,
         data.get("sloc", 0),
@@ -105,16 +109,17 @@ def run_monte_carlo_simulation(data, iterations=1000):
         sim_data["eaf"] = eaf_dist[i]
         cost_estimation = calculate_cocomo(sim_data)
         simulated_costs.append(cost_estimation["cost"])
+
     return {
         "mean_cost": np.mean(simulated_costs),
         "std_dev": np.std(simulated_costs),
-        "p10_cost": np.percentile(simulated_costs, 90),
-        "p90_cost": np.percentile(simulated_costs, 10),
+        "p10_cost": np.percentile(simulated_costs, 10),
+        "p90_cost": np.percentile(simulated_costs, 90),
     }
 
 
 def calculate_risk_and_analysis(data, baseline_cost, baseline_duration):
-    """Calcule les scores de risque et l'utilisation des ressources."""
+    """Calculates risk scores and resource utilization."""
     team_size = data.get("developers", 1) + data.get("testers", 1)
 
     risk_technical = (
@@ -129,7 +134,6 @@ def calculate_risk_and_analysis(data, baseline_cost, baseline_duration):
     )
 
     risk_human = min(team_size / 25, 1) * 30
-
     risk_budget = min(baseline_cost / 2000000, 1) * 30
 
     required_team_size = (
@@ -138,6 +142,7 @@ def calculate_risk_and_analysis(data, baseline_cost, baseline_duration):
         or 0
     )
     utilization_factor = required_team_size / team_size if team_size > 0 else 0
+
     dev_util = min(100, utilization_factor * 100 * 0.7)
     tester_util = min(100, utilization_factor * 100 * 0.3)
 
@@ -152,8 +157,9 @@ def calculate_risk_and_analysis(data, baseline_cost, baseline_duration):
 
 
 def generate_optimization_scenarios(data, baseline):
-
+    """Generates optimization scenarios by adjusting project parameters."""
     scenarios = []
+
     data_fast = data.copy()
     data_fast.update(
         {
@@ -165,7 +171,7 @@ def generate_optimization_scenarios(data, baseline):
     fast_result = calculate_cocomo(data_fast)
     scenarios.append(
         {
-            "scenario_name": "Accéléré",
+            "scenario_name": "Accelerated",
             "team_size": int(data_fast["developers"] + data_fast["testers"]),
             "duration": fast_result["duration"],
             "cost": fast_result["cost"],
@@ -173,6 +179,7 @@ def generate_optimization_scenarios(data, baseline):
             "time_saving": baseline["duration"] - fast_result["duration"],
         }
     )
+
     data_cheap = data.copy()
     data_cheap.update(
         {
@@ -184,7 +191,7 @@ def generate_optimization_scenarios(data, baseline):
     cheap_result = calculate_cocomo(data_cheap)
     scenarios.append(
         {
-            "scenario_name": "Économique",
+            "scenario_name": "Economical",
             "team_size": int(data_cheap["developers"] + data_cheap["testers"]),
             "duration": cheap_result["duration"],
             "cost": cheap_result["cost"],
@@ -196,7 +203,7 @@ def generate_optimization_scenarios(data, baseline):
 
 
 def calculate_estimation(data: dict) -> dict:
-    """Orchestre tous les modules de calcul pour générer un rapport complet."""
+    """Orchestrates all calculation modules to generate a complete report."""
     cocomo_result = calculate_cocomo(data)
     fp_result = calculate_function_points(data)
 
@@ -230,8 +237,7 @@ def calculate_estimation(data: dict) -> dict:
 
 
 def calculate_sensitivity_analysis(data, baseline_financials, baseline_cost, duration):
-    """Analyse l'impact d'un changement de 10% sur les paramètres clés."""
-
+    """Analyzes the impact of a 10% change in key parameters on the NPV."""
     baseline_npv = baseline_financials.get("npv", 0)
 
     data_revenue_plus = data.copy()
@@ -267,9 +273,7 @@ def calculate_sensitivity_analysis(data, baseline_financials, baseline_cost, dur
 
     data_sloc_plus = data.copy()
     data_sloc_plus["sloc"] *= 1.1
-
     cost_sloc_plus = calculate_cocomo(data_sloc_plus)["cost"]
-
     financials_sloc_plus = calculate_financials(data, cost_sloc_plus, duration)
 
     if baseline_npv != 0:
